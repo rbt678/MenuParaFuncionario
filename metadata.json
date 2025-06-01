@@ -1,0 +1,6 @@
+{
+  "name": "Menu para Funcionários de restaurantes",
+  "description": "Um aplicativo web para visualizar o cardápio e montar pedidos, utilizando React e Tailwind CSS.",
+  "requestFramePermissions": [],
+  "prompt": ""
+}
