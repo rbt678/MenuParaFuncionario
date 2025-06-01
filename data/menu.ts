@@ -88,7 +88,7 @@ export const MENU_LAYOUT_GROUPS: MenuGroup[] = [
   },
   {
     id: 'extras_e_bebidas',
-    layoutClassesForGroupContainer: 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-8 mt-0 md:mt-8',
+    layoutClassesForGroupContainer: 'grid grid-cols-1 md:grid-cols-2 gap-x-8 mt-0 md:mt-8',
     categories: [
       { title: 'ACOMPANHAMENTOS', items: acompanhamentoItems, gridCols: 'md:grid-cols-1', itemCustomClass: '!p-3' }, 
       { title: 'BEBIDAS ESPECIAIS', items: bebidaItems, gridCols: 'md:grid-cols-1', itemCustomClass: '!p-3' },
