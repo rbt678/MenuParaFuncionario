@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { MenuItem, OrderItem, Comanda, MenuGroup } from './types';
+import { MenuItem, OrderItem, Comanda, MenuGroup, ModalAction } from './types';
 import { MENU_LAYOUT_GROUPS } from './data/menu';
 import Header from './components/Header';
 import Footer from './components/Footer';
@@ -46,6 +46,7 @@ const App: React.FC = () => {
     setAddingToComandaId,
     processItemAdditionToCurrentOrder,
     handleUpdateOrderItemQuantity,
+    handleUpdateOrderItemObservation, // Added from hook
     handleRequestRemoveItemFromCurrentOrder,
     handleClearCurrentOrderOrCancelAddition,
   } = useCurrentOrder({ showToast, setModalConfig, comandas });
@@ -91,9 +92,13 @@ const App: React.FC = () => {
   };
   
   const handleAddItemToCurrentOrderMain = (itemToAdd: MenuItem) => {
+    // Check if item (without addons choice yet) is already in order to increment quantity
+    // This check is simplified; complex items with forced choices might need more specific logic here
     if (!(itemToAdd.availableAddons && itemToAdd.availableAddons.length > 0)) {
       const existingItemIndex = currentOrder.findIndex(
-        item => item.name === itemToAdd.name && (!item.selectedAddons || item.selectedAddons.length === 0)
+        item => item.name === itemToAdd.name && 
+                (!item.selectedAddons || item.selectedAddons.length === 0) &&
+                !item.observation // Also consider observation if it makes it unique
       );
       if (existingItemIndex > -1) {
         setCurrentOrder(prevOrder => {
@@ -105,6 +110,7 @@ const App: React.FC = () => {
         return;
       }
     }
+    // If item has addons or is new (or new variant), start the flow
     handleAddItemFlowStart(itemToAdd);
   };
 
@@ -194,6 +200,36 @@ const App: React.FC = () => {
         showToast(`${TEXTS.TOAST_ENTERING_ADD_MODE_PREFIX}${targetComanda.comandaNumber}${TEXTS.TOAST_ENTERING_ADD_MODE_SUFFIX}`, 'info');
     }
   };
+
+  const handleRequestEditObservation = (itemId: string, currentObservation: string | undefined, itemName: string) => {
+    const extraActions: ModalAction[] = [];
+    if (currentObservation && currentObservation.trim() !== "") {
+        extraActions.push({
+            text: TEXTS.MODAL_OBSERVATION_REMOVE_BUTTON,
+            onClick: () => {
+                handleUpdateOrderItemObservation(itemId, ""); // Empty string will be treated as removal
+                NATIVE_CLOSE_MODAL_FROM_HOOK();
+            },
+            className: `bg-[${theme.colors.destructive}] hover:bg-[${theme.colors.destructiveHover}] text-[${theme.colors.textOnAccent}]`
+        });
+    }
+
+    showModal({
+        message: `${TEXTS.MODAL_OBSERVATION_TITLE_PREFIX}"${itemName}"`,
+        textareaLabel: TEXTS.MODAL_OBSERVATION_TEXTAREA_LABEL,
+        textareaPlaceholder: TEXTS.MODAL_OBSERVATION_TEXTAREA_PLACEHOLDER,
+        initialTextareaValue: currentObservation || "",
+        textareaRows: 3,
+        confirmText: TEXTS.MODAL_OBSERVATION_CONFIRM_BUTTON,
+        onConfirm: (_inputValue, textareaValue) => {
+            handleUpdateOrderItemObservation(itemId, textareaValue || "");
+            NATIVE_CLOSE_MODAL_FROM_HOOK();
+        },
+        onCancel: NATIVE_CLOSE_MODAL_FROM_HOOK,
+        showCancelButton: true,
+        extraActions: extraActions.length > 0 ? extraActions : undefined,
+    });
+  };
   
   const primaryItemNameForAddons = itemPendingAddons?.name || "";
 
@@ -254,6 +290,7 @@ const App: React.FC = () => {
                 addingToComandaId={addingToComandaId}
                 targetComandaNumber={addingToComandaId ? comandas.find(c=>c.id === addingToComandaId)?.comandaNumber : undefined}
                 title={orderSummaryTitle}
+                onEditObservation={handleRequestEditObservation} // Passed here
               />
             </div>
           </div>

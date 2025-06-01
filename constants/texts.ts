@@ -46,6 +46,13 @@ export const TEXTS = {
   MENU_ITEM_ADD_BUTTON: "Adicionar",
   MENU_ITEM_ADD_TO_COMANDA_BUTTON_SUFFIX: " à Comanda", 
 
+  // OrderItemCard
+  ORDER_ITEM_CARD_EDIT_OBSERVATION_ARIA_LABEL_PREFIX: "Adicionar ou editar observação para ",
+  ORDER_ITEM_CARD_OBSERVATION_LABEL: "Obs:",
+
+  // ComandaDetail
+  COMANDA_DETAIL_OBSERVATION_LABEL: "Observação:",
+
   // Modal
   MODAL_BUTTON_COPY_TEXT: "Copiar Texto",
   MODAL_FINALIZE_COMANDA_CONFIRM_PROMPT: "Confirmar e finalizar esta nova comanda?",
@@ -74,6 +81,11 @@ export const TEXTS = {
   MODAL_DELETE_COMANDA_PROMPT_CLIENT_PREFIX: " do cliente ",
   MODAL_DELETE_COMANDA_PROMPT_SUFFIX: "? Esta ação não pode ser desfeita.",
   MODAL_DELETE_COMANDA_CONFIRM_BUTTON: "Sim, Excluir",
+   MODAL_OBSERVATION_TITLE_PREFIX: "Observação para ",
+  MODAL_OBSERVATION_TEXTAREA_LABEL: "Observação (opcional):",
+  MODAL_OBSERVATION_TEXTAREA_PLACEHOLDER: "Ex: Sem cebola, mais queijo, etc.",
+  MODAL_OBSERVATION_CONFIRM_BUTTON: "Salvar Observação",
+  MODAL_OBSERVATION_REMOVE_BUTTON: "Remover Observação",
 
   // AddonsSelectionModal
   ADDONS_MODAL_TITLE_PREFIX: "Adicionais para ",
@@ -162,4 +174,8 @@ export const TEXTS = {
   TOAST_CURRENT_ORDER_ALREADY_EMPTY: "A comanda atual já está vazia.",
   TOAST_ADDITION_CANCELED_ITEMS_CLEARED: "Adição cancelada e itens limpos.",
   TOAST_CURRENT_ORDER_CLEARED: "Comanda atual limpa!",
+  TOAST_ITEM_OBSERVATION_UPDATED_PREFIX: "Observação para \"",
+  TOAST_ITEM_OBSERVATION_UPDATED_SUFFIX: "\" atualizada.",
+  TOAST_ITEM_OBSERVATION_REMOVED_PREFIX: "Observação para \"",
+  TOAST_ITEM_OBSERVATION_REMOVED_SUFFIX: "\" removida.",
 };

@@ -19,6 +19,7 @@ interface UseCurrentOrderReturn {
     selectedAddons?: Array<{ addonItem: MenuItem; quantity: number }>
   ) => void;
   handleUpdateOrderItemQuantity: (itemId: string, newQuantity: number) => void;
+  handleUpdateOrderItemObservation: (itemId: string, observation: string) => void;
   handleRequestRemoveItemFromCurrentOrder: (itemId: string) => void;
   handleClearCurrentOrderOrCancelAddition: (
     isAddingMode: boolean, 
@@ -32,11 +33,16 @@ const useCurrentOrder = ({ showToast, setModalConfig, comandas }: UseCurrentOrde
 
   useEffect(() => {
     try {
-      const storedOrder = localStorage.getItem('OrderReact');
+      const storedOrder = localStorage.getItem('restauranteOrderReact');
       if (storedOrder) {
         const parsedOrder = JSON.parse(storedOrder);
         if (Array.isArray(parsedOrder)) {
-          setCurrentOrder(parsedOrder);
+          // Ensure loaded items have the observation field, defaulting to undefined if not present
+          const validatedOrder = parsedOrder.map(item => ({
+            ...item,
+            observation: item.observation || undefined,
+          }));
+          setCurrentOrder(validatedOrder);
         }
       }
     } catch (error) {
@@ -46,7 +52,7 @@ const useCurrentOrder = ({ showToast, setModalConfig, comandas }: UseCurrentOrde
   }, [showToast]);
 
   useEffect(() => {
-    localStorage.setItem('OrderReact', JSON.stringify(currentOrder));
+    localStorage.setItem('restauranteOrderReact', JSON.stringify(currentOrder));
   }, [currentOrder]);
 
   const processItemAdditionToCurrentOrder = useCallback((
@@ -57,26 +63,46 @@ const useCurrentOrder = ({ showToast, setModalConfig, comandas }: UseCurrentOrde
         ...itemToAdd, 
         id: `${itemToAdd.id}_${Date.now()}_${Math.random().toString(16).slice(2)}`, 
         quantity: 1, 
-        selectedAddons: selectedAddons.length > 0 ? selectedAddons : undefined 
+        selectedAddons: selectedAddons.length > 0 ? selectedAddons : undefined,
+        observation: undefined, // Initialize observation
     };
     
     setCurrentOrder(prevOrder => [...prevOrder, newItem]);
     
     const targetComanda = addingToComandaId ? comandas.find(c => c.id === addingToComandaId) : null;
-    const message = addingToComandaId 
-        ? `${TEXTS.TOAST_ITEM_ADDED_TO_EXISTING_COMANDA_NAME_PREFIX}${itemToAdd.name}${TEXTS.TOAST_ITEM_ADDED_TO_EXISTING_COMANDA_NUMBER_MIDFIX}${targetComanda?.comandaNumber || '...'}${TEXTS.TOAST_ITEM_ADDED_TO_EXISTING_COMANDA_SUFFIX}`
-        : `${TEXTS.TOAST_ITEM_ADDED_TO_CURRENT_ORDER_NAME_PREFIX}${itemToAdd.name}${TEXTS.TOAST_ITEM_ADDED_TO_CURRENT_ORDER_SUFFIX}`;
+    const message = addingToComandaId && targetComanda
+        ? `${TEXTS.TOAST_ITEM_ADDED_TO_EXISTING_COMANDA_NAME_PREFIX}${newItem.name}${TEXTS.TOAST_ITEM_ADDED_TO_EXISTING_COMANDA_NUMBER_MIDFIX}${targetComanda.comandaNumber}${TEXTS.TOAST_ITEM_ADDED_TO_EXISTING_COMANDA_SUFFIX}`
+        : `${TEXTS.TOAST_ITEM_ADDED_TO_CURRENT_ORDER_NAME_PREFIX}${newItem.name}${TEXTS.TOAST_ITEM_ADDED_TO_CURRENT_ORDER_SUFFIX}`;
     showToast(message, 'success');
+
   }, [showToast, addingToComandaId, comandas]);
 
-
   const handleUpdateOrderItemQuantity = useCallback((itemId: string, newQuantity: number) => {
-    setCurrentOrder(prevOrder =>
-      prevOrder.map(item =>
+    setCurrentOrder(prevOrder => 
+      prevOrder.map(item => 
         item.id === itemId ? { ...item, quantity: newQuantity } : item
-      ).filter(item => item.quantity > 0) 
+      )
     );
   }, []);
+
+  const handleUpdateOrderItemObservation = useCallback((itemId: string, observationText: string) => {
+    let itemName = "";
+    setCurrentOrder(prevOrder =>
+      prevOrder.map(item => {
+        if (item.id === itemId) {
+          itemName = item.name;
+          return { ...item, observation: observationText.trim() === "" ? undefined : observationText.trim() };
+        }
+        return item;
+      })
+    );
+    if (observationText.trim() === "") {
+        showToast(`${TEXTS.TOAST_ITEM_OBSERVATION_REMOVED_PREFIX}${itemName}${TEXTS.TOAST_ITEM_OBSERVATION_REMOVED_SUFFIX}`, "info");
+    } else {
+        showToast(`${TEXTS.TOAST_ITEM_OBSERVATION_UPDATED_PREFIX}${itemName}${TEXTS.TOAST_ITEM_OBSERVATION_UPDATED_SUFFIX}`, "success");
+    }
+  }, [showToast]);
+
 
   const handleRequestRemoveItemFromCurrentOrder = useCallback((itemId: string) => {
     const itemToRemove = currentOrder.find(item => item.id === itemId);
@@ -88,60 +114,58 @@ const useCurrentOrder = ({ showToast, setModalConfig, comandas }: UseCurrentOrde
       confirmText: TEXTS.REMOVE,
       onConfirm: () => {
         setCurrentOrder(prevOrder => prevOrder.filter(item => item.id !== itemId));
-        showToast(`${TEXTS.TOAST_ITEM_REMOVED_NAME_PREFIX}${itemToRemove.name}${TEXTS.TOAST_ITEM_REMOVED_SUFFIX}`, 'info');
+        showToast(`${TEXTS.TOAST_ITEM_REMOVED_NAME_PREFIX}${itemToRemove.name}${TEXTS.TOAST_ITEM_REMOVED_SUFFIX}`, "success");
         setModalConfig(prev => ({ ...prev, isOpen: false }));
       },
-      onCancel: () => {
-        setModalConfig(prev => ({ ...prev, isOpen: false }));
-      },
+      onCancel: () => setModalConfig(prev => ({ ...prev, isOpen: false })),
       showCancelButton: true,
     });
-  }, [currentOrder, showToast, setModalConfig]);
+  }, [currentOrder, setModalConfig, showToast]);
 
   const handleClearCurrentOrderOrCancelAddition = useCallback((
     isAddingMode: boolean, 
     onAddingCancelCallback: () => void
   ) => {
-    if (!isAddingMode && currentOrder.length === 0) {
+    if (currentOrder.length === 0 && !isAddingMode) {
       showToast(TEXTS.TOAST_CURRENT_ORDER_ALREADY_EMPTY, "info");
       return;
     }
-    if (isAddingMode && currentOrder.length === 0) {
-      onAddingCancelCallback();
-      return;
-    }
+    
+    const message = isAddingMode 
+        ? TEXTS.MODAL_CLEAR_ORDER_ADDING_PROMPT 
+        : TEXTS.MODAL_CLEAR_ORDER_PROMPT;
+    const confirmButtonText = isAddingMode 
+        ? TEXTS.MODAL_CLEAR_ORDER_ADDING_CONFIRM_BUTTON 
+        : TEXTS.MODAL_CLEAR_ORDER_CONFIRM_BUTTON;
 
-    const message = isAddingMode
-      ? TEXTS.MODAL_CLEAR_ORDER_ADDING_PROMPT
-      : TEXTS.MODAL_CLEAR_ORDER_PROMPT;
-      
     setModalConfig({
       isOpen: true,
       message: message,
-      confirmText: isAddingMode ? TEXTS.MODAL_CLEAR_ORDER_ADDING_CONFIRM_BUTTON : TEXTS.MODAL_CLEAR_ORDER_CONFIRM_BUTTON,
+      confirmText: confirmButtonText,
       onConfirm: () => {
-        setCurrentOrder([]);
-        showToast(isAddingMode ? TEXTS.TOAST_ADDITION_CANCELED_ITEMS_CLEARED : TEXTS.TOAST_CURRENT_ORDER_CLEARED, 'success');
-        setModalConfig(prev => ({ ...prev, isOpen: false }));
         if (isAddingMode) {
-          onAddingCancelCallback();
+          onAddingCancelCallback(); // This will set currentOrder to [] and change view etc.
+          showToast(TEXTS.TOAST_ADDITION_CANCELED_ITEMS_CLEARED, "info");
+        } else {
+          setCurrentOrder([]);
+          showToast(TEXTS.TOAST_CURRENT_ORDER_CLEARED, "success");
         }
-      },
-      onCancel: () => {
         setModalConfig(prev => ({ ...prev, isOpen: false }));
       },
+      onCancel: () => setModalConfig(prev => ({ ...prev, isOpen: false })),
       showCancelButton: true,
     });
-  }, [currentOrder, showToast, setModalConfig]);
+  }, [currentOrder.length, setModalConfig, showToast, setCurrentOrder]);
 
 
   return { 
     currentOrder, 
-    setCurrentOrder,
+    setCurrentOrder, 
     addingToComandaId, 
     setAddingToComandaId,
-    processItemAdditionToCurrentOrder,
-    handleUpdateOrderItemQuantity,
+    processItemAdditionToCurrentOrder, 
+    handleUpdateOrderItemQuantity, 
+    handleUpdateOrderItemObservation,
     handleRequestRemoveItemFromCurrentOrder,
     handleClearCurrentOrderOrCancelAddition,
   };

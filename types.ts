@@ -15,6 +15,7 @@ export interface MenuItem {
 export interface OrderItem extends MenuItem {
   quantity: number;
   selectedAddons?: Array<{ addonItem: MenuItem; quantity: number }>; 
+  observation?: string; // Observation for this specific order item
 }
 
 export interface MenuCategory {

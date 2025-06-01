@@ -14,6 +14,7 @@ interface OrderSummaryProps {
   addingToComandaId: string | null;
   targetComandaNumber?: number;
   title?: string;
+  onEditObservation: (itemId: string, currentObservation: string | undefined, itemName: string) => void; // Added
 }
 
 const OrderSummary: React.FC<OrderSummaryProps> = ({ 
@@ -24,7 +25,8 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({
   onFinalizeOrder,
   addingToComandaId,
   targetComandaNumber,
-  title = TEXTS.ORDER_SUMMARY_TITLE_CURRENT
+  title = TEXTS.ORDER_SUMMARY_TITLE_CURRENT,
+  onEditObservation, // Added
 }) => {
   
   const calculateLineItemTotal = (item: OrderItem): number => {
@@ -67,6 +69,7 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({
                 item={item} 
                 onUpdateQuantity={onUpdateQuantity}
                 onRemoveItem={onRemoveItem}
+                onEditObservation={onEditObservation} // Passed down
               />
             ))
           )}

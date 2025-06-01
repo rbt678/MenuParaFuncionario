@@ -56,7 +56,7 @@ const useComandas = ({
 
   useEffect(() => {
     try {
-      const storedComandas = localStorage.getItem('Comandas');
+      const storedComandas = localStorage.getItem('restauranteComandas');
       if (storedComandas) {
         let parsedComandas = JSON.parse(storedComandas) as Array<Comanda | any>;
         if (Array.isArray(parsedComandas)) {
@@ -101,7 +101,7 @@ const useComandas = ({
   }, [showToast]); 
 
   useEffect(() => {
-    localStorage.setItem('Comandas', JSON.stringify(comandas));
+    localStorage.setItem('restauranteComandas', JSON.stringify(comandas));
   }, [comandas]);
 
   useEffect(() => {

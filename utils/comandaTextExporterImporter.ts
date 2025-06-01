@@ -66,6 +66,9 @@ export const exportComandasToText = (comandas: Comanda[]): string => {
             text += `        + ${addonItem.name} (Qtd: ${addonEntry.quantity}) | Unit: ${formatPrice(addonItem.price)} | Addon Line Total: ${formatPrice(addonLineTotal)}\n`;
           });
         }
+        if (item.observation) {
+          text += `        Observação: ${item.observation}\n`;
+        }
       });
       text += `\n`;
     });
@@ -127,17 +130,16 @@ export const importComandasFromText = (text: string): { newComandas: Comanda[], 
   const errors: string[] = [];
   let currentComanda: Partial<Comanda> & { currentSession?: Partial<ComandaSession> & { currentItem?: Partial<OrderItem> } } = {};
   let inComandaBlock = false;
-  let inSessionBlock = false; // Tracks if we are inside a session's definition
-  // let inItemsBlock = false; // Not strictly needed if item lines imply item block within a session
+  let inSessionBlock = false; 
 
   lines.forEach((line, index) => {
     const lineNumber = index + 1;
     const trimmedLine = line.trim();
 
     if (trimmedLine.startsWith("--- Comanda Nº")) {
-      if (inComandaBlock && currentComanda.id) { // Finalize previous comanda if malformed (no "Fim da Comanda")
+      if (inComandaBlock && currentComanda.id) { 
         errors.push(`Linha ${lineNumber}: Nova comanda iniciada sem finalizar a anterior. Tentando salvar a anterior.`);
-        finalizeCurrentSession(currentComanda); // Finalize last session of previous comanda
+        finalizeCurrentSession(currentComanda); 
         if (currentComanda.id && currentComanda.sessions && currentComanda.sessions.length > 0 && currentComanda.status && currentComanda.timestamp) {
             let calculatedTotal = 0;
             currentComanda.sessions.forEach(s => s.items.forEach(i => calculatedTotal += calculateLineItemTotal(i)));
@@ -158,7 +160,7 @@ export const importComandasFromText = (text: string): { newComandas: Comanda[], 
     }
 
     if (trimmedLine.startsWith("--- Fim da Comanda Nº") && inComandaBlock) {
-      finalizeCurrentSession(currentComanda); // Finalize the last session and its last item
+      finalizeCurrentSession(currentComanda); 
 
       if (currentComanda.id && currentComanda.sessions && currentComanda.sessions.length > 0 && currentComanda.status && currentComanda.timestamp) {
         let calculatedTotal = 0;
@@ -203,12 +205,11 @@ export const importComandasFromText = (text: string): { newComandas: Comanda[], 
     } else if (trimmedLine.startsWith("Total Geral:")) {
         const parsedTotal = parsePriceString(trimmedLine.substring(12).trim());
         if (parsedTotal === null) errors.push(`Linha ${lineNumber}: Formato de preço inválido para "Total Geral".`);
-        // We mainly use recalculated total, but can store this for reference if needed.
     } else if (trimmedLine.startsWith("Sessões de Pedidos:")) {
-      currentComanda.sessions = []; // Initialize sessions array
+      currentComanda.sessions = []; 
     } else if (trimmedLine.startsWith("-- Sessão")) {
-      if (inSessionBlock) { // If there was a previous session block active
-        finalizeCurrentSession(currentComanda); // Finalize it before starting new one
+      if (inSessionBlock) { 
+        finalizeCurrentSession(currentComanda); 
       }
       
       inSessionBlock = true;
@@ -217,18 +218,17 @@ export const importComandasFromText = (text: string): { newComandas: Comanda[], 
       if (sessionTimestamp === null) errors.push(`Linha ${lineNumber}: Formato de data inválido para sessão.`);
       currentComanda.currentSession = { timestamp: sessionTimestamp || Date.now(), items: [] , currentItem: {} };
     } else if (trimmedLine.startsWith("Itens:") && inSessionBlock) {
-      // This line just marks the start of items, no specific action other than ensuring currentSession.items exists (done by session start)
       if (currentComanda.currentSession && !currentComanda.currentSession.items) {
           currentComanda.currentSession.items = [];
       }
-    } else if (trimmedLine.startsWith("- ") && inSessionBlock) { // Item line
-      finalizeCurrentItem(currentComanda); // Finalize previous item in this session (if any)
+    } else if (trimmedLine.startsWith("- ") && inSessionBlock) { 
+      finalizeCurrentItem(currentComanda); 
       
-      currentComanda.currentSession!.currentItem = { selectedAddons: [] }; // Start new item
+      currentComanda.currentSession!.currentItem = { selectedAddons: [] }; 
 
       const itemMatch = trimmedLine.match(/- (.*?) \(Qtd: (\d+)\) \| Unit: (R\$[\d,.]+) \| Line Total: (R\$[\d,.]+)/);
       if (itemMatch) {
-        const [, name, qtyStr, unitPriceStr] = itemMatch; // lineTotalStr is not used for parsing item
+        const [, name, qtyStr, unitPriceStr] = itemMatch; 
         const unitPrice = parsePriceString(unitPriceStr);
 
         if (unitPrice === null) {
@@ -240,16 +240,17 @@ export const importComandasFromText = (text: string): { newComandas: Comanda[], 
                 id: `${baseItem.id || 'item'}_${Date.now()}_${Math.random().toString(16).slice(2)}`, 
                 quantity: parseInt(qtyStr, 10),
                 selectedAddons: [],
+                observation: undefined, // Initialize observation
             };
         }
       } else {
         errors.push(`Linha ${lineNumber}: Formato de item inválido: "${trimmedLine}"`);
-        currentComanda.currentSession!.currentItem = {}; // Clear if invalid
+        currentComanda.currentSession!.currentItem = {}; 
       }
-    } else if (trimmedLine.startsWith("+ ") && currentComanda.currentSession?.currentItem?.name && inSessionBlock) { // Addon line
+    } else if (trimmedLine.startsWith("+ ") && currentComanda.currentSession?.currentItem?.name && inSessionBlock) { 
       const addonMatch = trimmedLine.match(/\+ (.*?) \(Qtd: (\d+)\) \| Unit: (R\$[\d,.]+) \| Addon Line Total: (R\$[\d,.]+)/);
       if (addonMatch) {
-        const [, name, qtyStr, unitPriceStr] = addonMatch; // addonLineTotalStr not used for parsing
+        const [, name, qtyStr, unitPriceStr] = addonMatch; 
         const unitPrice = parsePriceString(unitPriceStr);
 
         if (unitPrice === null) {
@@ -270,12 +271,17 @@ export const importComandasFromText = (text: string): { newComandas: Comanda[], 
       } else {
         errors.push(`Linha ${lineNumber}: Formato de adicional inválido: "${trimmedLine}"`);
       }
+    } else if (trimmedLine.startsWith("Observação:") && currentComanda.currentSession?.currentItem?.name && inSessionBlock) {
+        const observationText = trimmedLine.substring(12).trim();
+        if (currentComanda.currentSession.currentItem) {
+            currentComanda.currentSession.currentItem.observation = observationText;
+        }
     }
   });
   
-  if (inComandaBlock && currentComanda.id) { // Finalize any pending comanda at EOF
+  if (inComandaBlock && currentComanda.id) { 
     errors.push(`Fim do arquivo: Comanda não finalizada por tag "--- Fim da Comanda ---". Tentando salvar.`);
-    finalizeCurrentSession(currentComanda); // Finalize last session and its last item
+    finalizeCurrentSession(currentComanda); 
     
     if (currentComanda.id && currentComanda.sessions && currentComanda.sessions.length > 0 && currentComanda.status && currentComanda.timestamp) {
         let calculatedTotal = 0;

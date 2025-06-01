@@ -185,6 +185,12 @@ const ComandaDetail: React.FC<ComandaDetailProps> = ({ comanda, onBack, onUpdate
                           ))}
                         </div>
                       )}
+                       {item.observation && (
+                        <div className="mt-2 pt-2 border-t border-gray-600 border-opacity-30 text-xs">
+                          <strong className={`text-[${theme.colors.primaryLight}] opacity-90`}>{TEXTS.COMANDA_DETAIL_OBSERVATION_LABEL} </strong>
+                          <span className={`text-[${theme.colors.textSecondary}] italic`}>{item.observation}</span>
+                        </div>
+                      )}
                     </li>
                   ))}
                 </ul>
